@@ -1,157 +1,155 @@
-const countersEl = document.getElementById('countersBox');
-const addCounterEl = document.getElementById('addCounter');
-const resetEl = document.getElementById('reset');
+const intialState = [{
+  id: 0,
+  value: 0,
+  incrementBy: 1,
+  decrementBy: 1
+}]
 
+//action idetifiers
+const Add_COUNTER = "addCounter";
+const RESET_COUNTERS = "resetCounters";
+const INCREMENT = "increment";
+const DECREMENT = "decrement";
 
-
-//javascript side
-
-//creating counter components
-const createCounterComponent = (id) => {
-  const counterEl = document.createElement('div')
-  counterEl.setAttribute("class", "counter flex flex-col p-8 items-center border border-sky-500 rounded");
-  counterEl.setAttribute('id', '1')
-
-  //creating and appending counter
-  const counter = document.createElement('div')
-  counter.setAttribute("class", "flex items-center pb-4 text-2xl font-semibold counter");
-  counter.innerText = 0
-
-
-  //creating incrementdecrement box
-  const boxEl = document.createElement('div');
-  boxEl.setAttribute("class", "flex space-x-3");
-
-  //creating decrement element
-  const decrementButtonEl = document.createElement('div');
-  decrementButtonEl.setAttribute("class", "bg-red-400 text-white px-3 py-2 rounded shadow");
-  decrementButtonEl.setAttribute("id", "decre");
-  decrementButtonEl.innerText = "Decrement";
-
-  //creating increment element
-  const incrementButtonEl = document.createElement('div');
-  incrementButtonEl.setAttribute("class", "bg-blue-400 text-white px-3 py-2 rounded shadow");
-  incrementButtonEl.setAttribute("id", "incre");
-  incrementButtonEl.innerText = "increment";
-
-  //appending item to counterEl
-  counterEl.appendChild(counter)
-  boxEl.appendChild(decrementButtonEl);
-  boxEl.appendChild(incrementButtonEl);
-  counterEl.appendChild(boxEl);
-  counterEl.setAttribute("id", id);
-
-  return counterEl;
-}
-
-
-
-
-
-
-///Redux side
-const INCREMENT = 'increment';
-const DECREMENT = 'decrement'
-const initialState = [
-  {
-    id: 1,
-    count: 0,
+//action creators
+const addCounter = () => {
+  return {
+    type: Add_COUNTER
   }
-]
-//ACTION CREATORS
-const increment = (value) => {
+};
+
+const resetCounter = () => {
+  return {
+    type: RESET_COUNTERS
+  }
+};
+const incrementHandler = (counterId, value) => {
+  console.log(counterId, value)
   return {
     type: INCREMENT,
-    payload: value
+    payload: { counterId, value }
   }
-}
-const decrement = (value) => {
+};
+const decrementHandler = (counterId, value) => {
   return {
     type: DECREMENT,
-    payload: value
+    payload: { counterId, value }
   }
+};
+
+const nextCounterId = (counters) => {
+  const maxId = counters.reduce(
+    (maxId, counter) => Math.max(counter.id, maxId), -1);
+
+  return counters.length;
 }
-//create reducer function
-function counterReducer(state = initialState, { type, payload }) {
-  if (type === INCREMENT) {
-    return { ...state, count: state.count + payload };
+
+//reducers
+const counterReducer = (state = intialState, action,) => {
+  const randomNumber = Math.floor(Math.random() * 10) + 1;
+
+
+  if (action.type === Add_COUNTER) {
+    return [
+      ...state,
+      {
+        id: nextCounterId(state),
+        value: 0,
+        incrementBy: randomNumber,
+        decrementBy: randomNumber
+
+      }
+    ]
   }
-  else if (type === DECREMENT) {
-    return { ...state, count: state.count - payload };
+
+  if (action.type === RESET_COUNTERS) {
+    return state.map(item => ({ ...item, value: 0 }))
   }
-  else {
-    return state;
+
+  if (action.type === INCREMENT) {
+
+    console.log(action.payload.counterId)
+
+    return state.map(item => (
+      item.id === action.payload.counterId ?
+        {
+
+          ...item, value: item.value + action.payload.value
+        } :
+        {
+          ...item
+        }
+    ))
+
+
   }
+
+
+
+  if (action.type === DECREMENT) {
+
+    return state.map(item => (
+      item.id === action.payload.counterId ?
+        {
+
+          ...item, value: item.value - action.payload.value
+        } :
+        {
+          ...item
+        }
+    ))
+  }
+
+  return state;
+
 }
 
 
-// //create store
+//select dom element
+const countersContainer = document.getElementById("countersContainer");
+const addCounterButton = document.getElementById("addCounter");
+const resetCounterButton = document.getElementById("resetCounter");
+
+
+//create store
 const store = Redux.createStore(counterReducer);
 
-// console.log(counterEl)
-// //this render funciton will take the current state and update it in the UI
-// const render = () => {
+const render = () => {
+  const state = store.getState();
+  let counterMarkup = "";
 
-//   const state = store.getState()
+  state.forEach((counter) => {
+    console.log(counter)
+    counterMarkup += ` <div
+    class="p-4 h-auto flex flex-col items-center justify-center space-y-5 bg-white rounded shadow">
+    <div class="text-2xl font-semibold">${counter.value}</div>
+    <div class="flex space-x-3">
+    <button class="bg-red-400 text-white px-3 py-2 rounded shadow"
+     onClick="store.dispatch(decrementHandler(${counter.id},${counter.incrementBy}))">
+    Decrement
+    </button>
+    <button class="bg-indigo-400 text-white px-3 py-2 rounded shadow"
+    onClick="store.dispatch(incrementHandler(${counter.id},${counter.incrementBy}))">
+    Increment
+  </button>
+</div>
+</div>`
+  })
 
-//   counterEl.innerText = state[0].count
-// }
-
-// //update UI initially
-// render()
-
-
-// //when state of store will get updated it will re render manually
-// store.subscribe(render)
-// //button click listenners
-
-let counterId = 1;
-const createCountObject = (value) => {
-  return {
-    id: value,
-    count: 0,
-  }
-}
-const addCounter = () => {
-  const states = store.getState();
-  states.push(createCountObject(counterId));
-  console.log(states)
+  countersContainer.innerHTML = counterMarkup
 
 }
-addCounterEl.addEventListener('click', () => {
-  AddCounterElement(counterId)
-  counterId = counterId + 1;
-  addCounter(counterId);
+//update UI initially
+render();
+//everytime there is change in the state we need to update the ui too
+store.subscribe(render);
+
+
+
+addCounterButton.addEventListener('click', () => {
+  store.dispatch(addCounter())
+})
+resetCounterButton.addEventListener('click', () => {
+  store.dispatch(resetCounter())
 })
 
-
-const AddCounterElement = (id) => {
-  //States.forEach(e => {
-  countersEl.appendChild(createCounterComponent(id))
-  //})
-}
-
-//initializing the first counter element
-AddCounterElement(counterId)
-
-//Dom element
-const increEl = document.getElementById('incre');
-const decreEl = document.getElementById('decre');
-let counterEl = document.querySelector('.counter')
-
-
-
-
-
-increEl.addEventListener('click', (e) => {
-  store.dispatch(increment(5))
-})
-decreEl.addEventListener('click', (e) => {
-  store.dispatch(decrement(5))
-})
-
-counterEl.addEventListener('click', e => {
-
-  console.log(counterEl.id)
-  counterEl = document.querySelector('.counter')
-})
